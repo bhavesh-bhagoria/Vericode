@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>VeriCode - Code Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f7f7f7;
+            color: #111;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 60px auto;
+        }
+
+        .header {
+            margin-bottom: 35px;
+        }
+
+        .badge {
+            display: inline-block;
+            border: 1px solid #111;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 38px;
+            letter-spacing: -1px;
+        }
+
+        .description {
+            margin: 0;
+            color: #555;
+            font-size: 16px;
+            line-height: 1.6;
+            max-width: 700px;
+        }
+
+        .analyzer {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            min-width: 0;
+            padding: 13px 14px;
+            border: 1px solid #aaa;
+            background: #fff;
+            color: #111;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #111;
+            box-shadow: 0 0 0 2px #eee;
+        }
+
+        button {
+            padding: 13px 22px;
+            border: 1px solid #111;
+            background: #111;
+            color: #fff;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: #333;
+        }
+
+        button:disabled {
+            background: #777;
+            border-color: #777;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            margin: 10px 0 0;
+            font-size: 13px;
+            color: #777;
+        }
+
+        #loading {
+            display: none;
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 18px;
+            margin-bottom: 25px;
+        }
+        #progress-list {
+    margin-top: 15px;
+}
+
+.progress-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+.progress-item:last-child {
+    border-bottom: none;
+}
+
+.progress-running {
+    color: #555;
+}
+
+.progress-complete {
+    color: #111;
+}
+
+.progress-error {
+    color: #777;
+}
+
+        .loading-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #ddd;
+            border-top-color: #111;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #result {
+            margin-top: 20px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .result-header h2 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .file-count {
+            font-size: 13px;
+            color: #555;
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            background: #fff;
+        }
+
+        .overview {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .overview-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 20px;
+        }
+
+        .overview-card h3 {
+            margin: 0 0 8px;
+            font-size: 13px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .overview-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .summary {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .summary h3 {
+            margin: 0 0 10px;
+            font-size: 17px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            margin: 30px 0 15px;
+        }
+
+        .issue {
+            background: #fff;
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+
+        .issue-header {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            background: #fafafa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .issue-title {
+            font-weight: bold;
+        }
+
+        .severity {
+            border: 1px solid #111;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .issue-body {
+            padding: 18px;
+        }
+
+        .issue-row {
+            margin-bottom: 14px;
+            line-height: 1.6;
+        }
+
+        .issue-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .issue-label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+
+        .issue-location {
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .explain-button {
+            margin-top: 15px;
+            padding: 8px 12px;
+            font-size: 12px;
+            background: #fff;
+            color: #111;
+            border: 1px solid #111;
+        }
+
+        .explain-button:hover {
+            background: #eee;
+        }
+
+        .suspicious-file {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 16px;
+            margin-bottom: 10px;
+        }
+
+        .suspicious-file strong {
+            font-family: monospace;
+        }
+
+        .gitignore {
+            margin-top: 8px;
+            background: #f7f7f7;
+            border: 1px solid #ddd;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .ai-indicator {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 16px;
+            margin-bottom: 10px;
+        }
+
+        .positive {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 18px;
+        }
+
+        .positive ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .positive li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .file {
+            background: #fff;
+            border: 1px solid #ddd;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+
+        .file-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid #ddd;
+            background: #fafafa;
+        }
+
+        .file-header h3 {
+            margin: 0;
+            font-size: 15px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .file-body {
+            padding: 18px;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: "Courier New", monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #222;
+        }
+
+        #chat-section {
+            display: none;
+            margin-top: 40px;
+            background: #fff;
+            border: 1px solid #ddd;
+        }
+
+        .chat-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid #ddd;
+            background: #fafafa;
+        }
+
+        .chat-header h2 {
+            margin: 0 0 5px;
+            font-size: 20px;
+        }
+
+        .chat-header p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+        }
+
+        #chat-messages {
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            margin-bottom: 18px;
+            max-width: 85%;
+        }
+
+        .chat-message.user {
+            margin-left: auto;
+        }
+
+        .chat-message.assistant {
+            margin-right: auto;
+        }
+
+        .message-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .message-content {
+            padding: 12px 14px;
+            border: 1px solid #ddd;
+            line-height: 1.6;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .chat-message.user .message-content {
+            background: #111;
+            color: #fff;
+            border-color: #111;
+        }
+
+        .chat-message.assistant .message-content {
+            background: #f7f7f7;
+            color: #111;
+        }
+
+        .chat-input-area {
+            border-top: 1px solid #ddd;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        #chat-input {
+            flex: 1;
+            min-width: 0;
+            resize: none;
+            height: 48px;
+            padding: 13px;
+            border: 1px solid #aaa;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            outline: none;
+        }
+
+        #chat-input:focus {
+            border-color: #111;
+        }
+
+        #chat-button {
+            height: 48px;
+        }
+
+        .chat-hint {
+            padding: 0 15px 15px;
+            margin: 0;
+            color: #777;
+            font-size: 12px;
+        }
+
+        .error {
+            border: 1px solid #111;
+            background: #fff;
+            padding: 18px;
+        }
+
+        .error h3 {
+            margin: 0 0 8px;
+            font-size: 17px;
+        }
+
+        .error p {
+            margin: 0;
+            color: #555;
+        }
+
+        footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #777;
+            font-size: 13px;
+        }
+
+        @media (max-width: 650px) {
+            .container {
+                width: 94%;
+                margin: 35px auto;
+            }
+
+            h1 {
+                font-size: 30px;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .result-header {
+                align-items: flex-start;
+                gap: 10px;
+                flex-direction: column;
+            }
+
+            .overview {
+                grid-template-columns: 1fr;
+            }
+
+            .chat-input-area {
+                flex-direction: column;
+            }
+
+            #chat-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header class="header">
+
+        <span class="badge">
+            CODE ANALYSIS TOOL
+        </span>
+
+        <h1>VeriCode</h1>
+
+        <p class="description">
+            Analyze your codebase, identify areas that need improvement,
+            detect potential issues, and evaluate whether your code is
+            ready for production.
+        </p>
+
+    </header>
+
+    <section class="analyzer">
+
+        <label class="label" for="github-url">
+            GitHub URL
+        </label>
+
+        <div class="input-row">
+
+            <input
+                type="url"
+                id="github-url"
+                placeholder="https://github.com/user/repository"
+            >
+
+            <button
+                id="analyze-button"
+                onclick="analyzeCode()"
+            >
+                Analyze Code
+            </button>
+
+        </div>
+
+        <p class="hint">
+            Supports GitHub repository URLs and individual GitHub file URLs.
+        </p>
+
+    </section>
+
+ <div id="loading">
+
+    <div class="loading-content">
+
+        <div class="spinner"></div>
+
+        <span>
+            Analyzing repository...
+        </span>
+
+    </div>
+
+    <div id="progress-list"></div>
+
+</div>
+
+    <div id="result"></div>
+
+    <section id="chat-section">
+
+        <div class="chat-header">
+
+            <h2>Discuss Your Analysis</h2>
+
+            <p>
+                Ask questions about any issue, point, file, or recommendation
+                from the analysis.
+            </p>
+
+        </div>
+
+        <div id="chat-messages">
+
+            <div class="chat-message assistant">
+
+                <div class="message-label">
+                    VeriCode
+                </div>
+
+                <div class="message-content">
+                    Your analysis is ready. You can ask me things like:
+                    "Explain issue 1",
+                    "Why is this a production problem?",
+                    "What did you mean by the last issue?",
+                    or "How should I fix this?"
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="chat-input-area">
+
+            <textarea
+                id="chat-input"
+                placeholder="Ask something about your analysis..."
+            ></textarea>
+
+            <button
+                id="chat-button"
+                onclick="sendChatMessage()"
+            >
+                Send
+            </button>
+
+        </div>
+
+        <p class="chat-hint">
+            The chat has access to the current analysis and previous messages.
+        </p>
+
+    </section>
+
+    <footer>
+        VeriCode &mdash; Code Analysis and Production Readiness
+    </footer>
+
+</div>
+
+<script>
+    let currentAnalysis = null;
+    let currentSourceCode = "";
+    let conversationHistory = [];
+async function analyzeCode() {
+
+    const url = document
+        .getElementById("github-url")
+        .value
+        .trim();
+
+    const loading =
+        document.getElementById("loading");
+
+    const resultDiv =
+        document.getElementById("result");
+
+    const button =
+        document.getElementById("analyze-button");
+
+    const chatSection =
+        document.getElementById("chat-section");
+
+    const progressList =
+        document.getElementById("progress-list");
+
+    if (!url) {
+
+        showError(
+            "Please enter a GitHub URL."
+        );
+
+        return;
+    }
+
+    if (!url.includes("github.com")) {
+
+        showError(
+            "Please enter a valid GitHub URL."
+        );
+
+        return;
+    }
+
+    loading.style.display = "block";
+
+    resultDiv.innerHTML = "";
+
+    chatSection.style.display = "none";
+
+    progressList.innerHTML = "";
+
+    button.disabled = true;
+
+    currentAnalysis = null;
+    currentSourceCode = "";
+    conversationHistory = [];
+
+    resetChat();
+
+    try {
+
+        const response = await fetch(
+            "/api/analyze/",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    url: url
+                })
+            }
+        );
+
+        if (!response.ok) {
+
+            const errorText =
+                await response.text();
+
+            let errorData;
+
+            try {
+                errorData =
+                    JSON.parse(errorText);
+            } catch {
+                errorData = {};
+            }
+
+            showError(
+                errorData.error ||
+                "Something went wrong while analyzing the code."
+            );
+
+            return;
+        }
+
+        /*
+         * GitHub file analysis still returns
+         * a normal JSON response.
+         */
+
+        if (url.includes("/blob/")) {
+
+            const data =
+                await response.json();
+
+            if (data.type === "file") {
+
+                currentAnalysis =
+                    data.result;
+
+                currentSourceCode =
+                    data.source_code || "";
+
+            }
+
+            displayResult(data);
+
+            if (currentAnalysis) {
+                chatSection.style.display =
+                    "block";
+            }
+
+            return;
+        }
+
+        /*
+         * Repository analysis is streamed.
+         */
+
+        const reader =
+            response.body.getReader();
+
+        const decoder =
+            new TextDecoder();
+
+        let buffer = "";
+
+        while (true) {
+
+            const {
+                value,
+                done
+            } = await reader.read();
+
+            if (done) {
+                break;
+            }
+
+            buffer +=
+                decoder.decode(
+                    value,
+                    {
+                        stream: true
+                    }
+                );
+
+            const lines =
+                buffer.split("\n");
+
+            buffer =
+                lines.pop();
+
+            for (const line of lines) {
+
+                if (!line.trim()) {
+                    continue;
+                }
+
+                const event =
+                    JSON.parse(line);
+
+                handleProgressEvent(
+                    event
+                );
+            }
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        showError(
+            "Unable to connect to the analysis server."
+        );
+
+    } finally {
+
+        loading.style.display = "none";
+
+        button.disabled = false;
+    }
+}
+    function handleProgressEvent(event) {
+
+    if (event.type === "start") {
+
+        const progressList =
+            document.getElementById(
+                "progress-list"
+            );
+
+        progressList.innerHTML = "";
+
+        return;
+    }
+
+    if (event.type === "file_start") {
+
+        addProgressItem(
+            event.file,
+            "running"
+        );
+
+        return;
+    }
+
+    if (event.type === "file_complete") {
+
+        updateProgressItem(
+            event.file,
+            "complete"
+        );
+
+        return;
+    }
+
+    if (event.type === "file_error") {
+
+        updateProgressItem(
+            event.file,
+            "error",
+            event.error
+        );
+
+        return;
+    }
+
+    if (event.type === "complete") {
+
+        const data =
+            event.repository;
+
+        currentAnalysis =
+            data.result || data;
+
+        currentSourceCode =
+            data.source_code || "";
+
+        displayResult(data);
+
+        document.getElementById(
+            "chat-section"
+        ).style.display = "block";
+
+        return;
+    }
+}
+    function addProgressItem(
+    filename,
+    status
+) {
+
+    const progressList =
+        document.getElementById(
+            "progress-list"
+        );
+
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "progress-item progress-running";
+
+    item.dataset.file =
+        filename;
+
+    item.innerHTML =
+        "⏳ Analyzing " +
+        escapeHtml(filename) +
+        "...";
+
+    progressList.appendChild(item);
+}
+
+
+function updateProgressItem(
+    filename,
+    status,
+    errorMessage = ""
+) {
+
+    const progressList =
+        document.getElementById(
+            "progress-list"
+        );
+
+    const items =
+        progressList.querySelectorAll(
+            ".progress-item"
+        );
+
+    for (const item of items) {
+
+        if (item.dataset.file !== filename) {
+            continue;
+        }
+
+        if (status === "complete") {
+
+            item.className =
+                "progress-item progress-complete";
+
+            item.innerHTML =
+                "✓ Analyzed " +
+                escapeHtml(filename);
+
+        }
+
+        if (status === "error") {
+
+            item.className =
+                "progress-item progress-error";
+
+            item.innerHTML =
+                "❌ Failed: " +
+                escapeHtml(filename);
+
+            if (errorMessage) {
+
+                item.innerHTML +=
+                    " - " +
+                    escapeHtml(errorMessage);
+            }
+        }
+
+        break;
+    }
+}
+    function showError(message) {
+
+        const resultDiv = document.getElementById("result");
+
+        resultDiv.innerHTML = `
+            <div class="error">
+                <h3>Analysis Error</h3>
+                <p>${escapeHtml(message)}</p>
+            </div>
+        `;
+    }
+
+    function displayResult(data) {
+
+        const resultDiv = document.getElementById("result");
+
+        if (data.type === "file") {
+
+            displayFileAnalysis(
+                data.result,
+                resultDiv
+            );
+
+            return;
+        }
+
+        if (data.type === "repository") {
+
+            displayRepositoryAnalysis(
+                data,
+                resultDiv
+            );
+
+            return;
+        }
+
+        showError("Unknown analysis response.");
+    }
+
+    function displayFileAnalysis(
+        analysis,
+        resultDiv
+    ) {
+
+        if (!analysis) {
+            showError("No analysis result was returned.");
+            return;
+        }
+
+        if (analysis.error) {
+
+            resultDiv.innerHTML = `
+                <div class="error">
+                    <h3>Analysis Error</h3>
+                    <p>${escapeHtml(analysis.error)}</p>
+                </div>
+            `;
+
+            return;
+        }
+
+        let html = "";
+
+        html += createOverview(analysis);
+        html += createSummary(analysis);
+
+        html += createIssues(
+            analysis.issues || []
+        );
+
+        html += createSuspiciousFiles(
+            analysis.suspicious_files || []
+        );
+
+        html += createAIIndicators(
+            analysis.ai_indicators || []
+        );
+
+        html += createPositiveObservations(
+            analysis.positive_observations || []
+        );
+
+        resultDiv.innerHTML = html;
+    }
+function displayRepositoryAnalysis(
+    data,
+    resultDiv
+) {
+
+    let html = `
+        <div class="result-header">
+
+            <h2>
+                Repository Analysis
+            </h2>
+
+            <span class="file-count">
+                ${escapeHtml(
+                    String(data.total_files || 0)
+                )}
+                files analyzed
+            </span>
+
+        </div>
+    `;
+
+    if (
+        Array.isArray(data.files) &&
+        data.files.length > 0
+    ) {
+
+        html += `
+            <h2 class="section-title">
+                Analyzed Files
+            </h2>
+        `;
+
+        data.files.forEach(function(file) {
+
+            let fileResult = file.result;
+
+            if (typeof fileResult === "string") {
+
+                try {
+
+                    fileResult =
+                        JSON.parse(fileResult);
+
+                } catch (error) {
+
+                    fileResult = {
+                        error:
+                            "The model returned invalid JSON",
+                        raw_response:
+                            fileResult
+                    };
+                }
+            }
+
+            html += `
+                <div class="file">
+
+                    <div class="file-header">
+
+                        <h3>
+                            ${escapeHtml(
+                                file.file ||
+                                "Unknown file"
+                            )}
+                        </h3>
+
+                    </div>
+
+                    <div class="file-body">
+            `;
+
+            if (fileResult && fileResult.error) {
+
+                html += `
+                    <div class="error">
+
+                        <h3>
+                            Analysis Error
+                        </h3>
+
+                        <p>
+                            ${escapeHtml(
+                                fileResult.error
+                            )}
+                        </p>
+
+                    </div>
+                `;
+
+            } else {
+
+                html += createOverview(
+                    fileResult
+                );
+
+                html += createSummary(
+                    fileResult
+                );
+
+                html += createIssues(
+                    fileResult.issues || []
+                );
+
+                html += createSuspiciousFiles(
+                    fileResult.suspicious_files || []
+                );
+
+                html += createPositiveObservations(
+                    fileResult.positive_observations || []
+                );
+            }
+
+            html += `
+                    </div>
+
+                </div>
+            `;
+        });
+    }
+
+    resultDiv.innerHTML = html;
+}
+    function createOverview(analysis) {
+
+        const aiLikelihood =
+            analysis.ai_likelihood !== undefined
+                ? String(analysis.ai_likelihood) + "%"
+                : "N/A";
+
+        const productionStatus =
+            analysis.production_status ||
+            "N/A";
+
+        return `
+            <div class="overview">
+
+                <div class="overview-card">
+
+                    <h3>
+                        AI Likelihood
+                    </h3>
+
+                    <div class="overview-value">
+                        ${escapeHtml(aiLikelihood)}
+                    </div>
+
+                </div>
+
+                <div class="overview-card">
+
+                    <h3>
+                        Production Status
+                    </h3>
+
+                    <div class="overview-value">
+                        ${escapeHtml(productionStatus)}
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+    }
+
+    function createSummary(analysis) {
+
+        if (!analysis.summary) {
+            return "";
+        }
+
+        let productionReason = "";
+
+        if (analysis.production_reason) {
+
+            productionReason = `
+                <br>
+
+                <strong>
+                    Production Reason:
+                </strong>
+
+                <div>
+                    ${escapeHtml(
+                        analysis.production_reason
+                    )}
+                </div>
+            `;
+        }
+
+        return `
+            <div class="summary">
+
+                <h3>
+                    Summary
+                </h3>
+
+                <div>
+                    ${escapeHtml(
+                        analysis.summary
+                    )}
+                </div>
+
+                ${productionReason}
+
+            </div>
+        `;
+    }
+
+    function createIssues(issues) {
+
+        if (
+            !Array.isArray(issues) ||
+            issues.length === 0
+        ) {
+
+            return `
+                <h2 class="section-title">
+                    Issues
+                </h2>
+
+                <div class="summary">
+                    No significant issues were detected.
+                </div>
+            `;
+        }
+
+        let html = `
+            <h2 class="section-title">
+                Issues
+            </h2>
+        `;
+
+        issues.forEach(function(issue) {
+
+            const location =
+                issue.location || {};
+
+            const locationText = [
+                location.file,
+                location.function,
+                location.lines
+            ]
+                .filter(Boolean)
+                .join(" | ");
+
+            const issueNumber =
+                issue.issue_number !== undefined
+                    ? issue.issue_number
+                    : "";
+
+            html += `
+                <div class="issue">
+
+                    <div class="issue-header">
+
+                        <div class="issue-title">
+
+                            Issue #${escapeHtml(
+                                String(issueNumber)
+                            )}
+
+                            &mdash;
+
+                            ${escapeHtml(
+                                issue.category || "GENERAL"
+                            )}
+
+                        </div>
+
+                        <span class="severity">
+                            ${escapeHtml(
+                                issue.severity || "INFO"
+                            )}
+                        </span>
+
+                    </div>
+
+                    <div class="issue-body">
+
+                        <div class="issue-row">
+
+                            <span class="issue-label">
+                                Location
+                            </span>
+
+                            <span class="issue-location">
+                                ${escapeHtml(
+                                    locationText ||
+                                    "Not specified"
+                                )}
+                            </span>
+
+                        </div>
+
+                        <div class="issue-row">
+
+                            <span class="issue-label">
+                                Problem
+                            </span>
+
+                            ${escapeHtml(
+                                issue.problem || ""
+                            )}
+
+                        </div>
+
+                        <div class="issue-row">
+
+                            <span class="issue-label">
+                                Reason
+                            </span>
+
+                            ${escapeHtml(
+                                issue.reason || ""
+                            )}
+
+                        </div>
+
+                        <div class="issue-row">
+
+                            <span class="issue-label">
+                                Evidence
+                            </span>
+
+                            ${escapeHtml(
+                                issue.evidence || ""
+                            )}
+
+                        </div>
+
+                        <div class="issue-row">
+
+                            <span class="issue-label">
+                                Suggested Fix
+                            </span>
+
+                            ${escapeHtml(
+                                issue.suggestion || ""
+                            )}
+
+                        </div>
+
+                        <button
+                            class="explain-button"
+                            onclick="askAboutIssue(${Number(issueNumber)})"
+                        >
+                            Ask about this issue
+                        </button>
+
+                    </div>
+
+                </div>
+            `;
+        });
+
+        return html;
+    }
+
+    function createSuspiciousFiles(files) {
+
+        if (
+            !Array.isArray(files) ||
+            files.length === 0
+        ) {
+            return "";
+        }
+
+        let html = `
+            <h2 class="section-title">
+                Suspicious Files
+            </h2>
+        `;
+
+        files.forEach(function(file) {
+
+            let gitignore = "";
+
+            if (file.suggested_gitignore) {
+
+                gitignore = `
+                    <div class="gitignore">
+                        ${escapeHtml(
+                            file.suggested_gitignore
+                        )}
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="suspicious-file">
+
+                    <strong>
+                        ${escapeHtml(
+                            file.file || "Unknown file"
+                        )}
+                    </strong>
+
+                    <p>
+                        ${escapeHtml(
+                            file.reason || ""
+                        )}
+                    </p>
+
+                    ${gitignore}
+
+                </div>
+            `;
+        });
+
+        return html;
+    }
+
+    function createAIIndicators(indicators) {
+
+        if (
+            !Array.isArray(indicators) ||
+            indicators.length === 0
+        ) {
+            return "";
+        }
+
+        let html = `
+            <h2 class="section-title">
+                AI Indicators
+            </h2>
+        `;
+
+        indicators.forEach(function(indicator) {
+
+            html += `
+                <div class="ai-indicator">
+
+                    <strong>
+                        ${escapeHtml(
+                            indicator.location ||
+                            "Unknown location"
+                        )}
+                    </strong>
+
+                    <p>
+                        ${escapeHtml(
+                            indicator.indicator || ""
+                        )}
+                    </p>
+
+                    <p>
+                        ${escapeHtml(
+                            indicator.reason || ""
+                        )}
+                    </p>
+
+                </div>
+            `;
+        });
+
+        return html;
+    }
+
+    function createPositiveObservations(observations) {
+
+        if (
+            !Array.isArray(observations) ||
+            observations.length === 0
+        ) {
+            return "";
+        }
+
+        let html = `
+            <h2 class="section-title">
+                Positive Observations
+            </h2>
+
+            <div class="positive">
+
+                <ul>
+        `;
+
+        observations.forEach(function(observation) {
+
+            html += `
+                <li>
+                    ${escapeHtml(observation)}
+                </li>
+            `;
+        });
+
+        html += `
+                </ul>
+
+            </div>
+        `;
+
+        return html;
+    }
+
+    function askAboutIssue(issueNumber) {
+
+        const chatSection =
+            document.getElementById("chat-section");
+
+        const chatInput =
+            document.getElementById("chat-input");
+
+        chatSection.style.display = "block";
+
+        chatInput.value =
+            "I don't understand issue " +
+            issueNumber +
+            ". Can you explain it?";
+
+        chatInput.focus();
+
+        chatSection.scrollIntoView({
+            behavior: "smooth"
+        });
+    }
+
+    async function sendChatMessage() {
+
+        const input =
+            document.getElementById("chat-input");
+
+        const button =
+            document.getElementById("chat-button");
+
+        const question =
+            input.value.trim();
+
+        if (!question) {
+            return;
+        }
+
+        if (!currentAnalysis) {
+
+            addChatMessage(
+                "assistant",
+                "Please run a code analysis first."
+            );
+
+            return;
+        }
+
+        addChatMessage(
+            "user",
+            question
+        );
+
+        conversationHistory.push({
+            role: "user",
+            content: question
+        });
+
+        input.value = "";
+        button.disabled = true;
+
+        try {
+
+            const response = await fetch(
+                "/api/chat/",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        question: question,
+                        analysis: currentAnalysis,
+                        source_code: currentSourceCode,
+                        conversation_history:
+                            conversationHistory
+                    })
+                }
+            );
+
+            const text = await response.text();
+
+console.log("CHAT STATUS:", response.status);
+console.log("CHAT RESPONSE:", text);
+
+let data;
+
+try {
+    data = JSON.parse(text);
+} catch (error) {
+    addChatMessage(
+        "assistant",
+        "Server returned an invalid response. Check the Django terminal."
+    );
+    return;
+}
+
+            if (!response.ok) {
+
+                addChatMessage(
+                    "assistant",
+                    data.error ||
+                    "Unable to get a response."
+                );
+
+                return;
+            }
+
+            const answer =
+                data.answer ||
+                data.result ||
+                "No answer was returned.";
+
+            addChatMessage(
+                "assistant",
+                answer
+            );
+
+            conversationHistory.push({
+                role: "assistant",
+                content: answer
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            addChatMessage(
+                "assistant",
+                "Unable to connect to the chat server."
+            );
+
+        } finally {
+
+            button.disabled = false;
+            input.focus();
+
+        }
+    }
+
+function addChatMessage(role, message) {
+
+    const chatMessages =
+        document.getElementById("chat-messages");
+
+    const messageDiv =
+        document.createElement("div");
+
+    messageDiv.className =
+        "chat-message " + role;
+
+    const label =
+        role === "user"
+            ? "You"
+            : "VeriCode";
+
+    let formattedMessage;
+
+    if (role === "assistant") {
+
+        formattedMessage = DOMPurify.sanitize(
+            marked.parse(message)
+        );
+
+    } else {
+
+        formattedMessage = escapeHtml(message);
+
+    }
+
+    messageDiv.innerHTML = `
+        <div class="message-label">
+            ${label}
+        </div>
+
+        <div class="message-content">
+            ${formattedMessage}
+        </div>
+    `;
+
+    chatMessages.appendChild(messageDiv);
+
+    chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+}
+
+    function resetChat() {
+
+        const chatMessages =
+            document.getElementById(
+                "chat-messages"
+            );
+
+        chatMessages.innerHTML = `
+            <div class="chat-message assistant">
+
+                <div class="message-label">
+                    VeriCode
+                </div>
+
+                <div class="message-content">
+                    Your analysis is ready. You can ask me
+                    about any issue, file, recommendation,
+                    or production concern.
+                </div>
+
+            </div>
+        `;
+    }
+
+    document
+        .getElementById("chat-input")
+        .addEventListener(
+            "keydown",
+            function(event) {
+
+                if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                ) {
+
+                    event.preventDefault();
+
+                    sendChatMessage();
+                }
+            }
+        );
+
+    function escapeHtml(value) {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return "";
+        }
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
+
+</body>
+</html>
