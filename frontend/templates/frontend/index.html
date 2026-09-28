@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -679,7 +680,12 @@
     </footer>
 
 </div>
-
+<script src="{% static 'frontend/js/auth.js' %}"></script>
+<script>
+    if (!getAccessToken()) {
+        window.location.href = "/login/";
+    }
+</script>
 <script>
     let currentAnalysis = null;
     let currentSourceCode = "";
