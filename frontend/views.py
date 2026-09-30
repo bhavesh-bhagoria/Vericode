@@ -9,5 +9,18 @@ def home(request):
 def login_page(request):
     return render(
         request,
-        "frontend/login.html"
+        "frontend/login.html")
+
+def register_page(request):
+    return render(
+        request,
+        "frontend/register.html"
+    )
+
+
+def verify_email_page(request, token):
+    return render(
+        request,
+        "frontend/verify_email.html",
+        {"token": token}
     )

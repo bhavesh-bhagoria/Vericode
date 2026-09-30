@@ -9,7 +9,7 @@
     <title>VeriCode - Code Analysis</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
-
+ 
     <style>
         * {
             box-sizing: border-box;
@@ -30,6 +30,22 @@
 
         .header {
             margin-bottom: 35px;
+        }
+        .user-section {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: 15px;
+        }
+        .logout-button {
+        background: rgb(154, 6, 6);
+        border-color: red;
+        }
+
+    .logout-button:hover {
+        background: darkred;
+        border-color: darkred;  
         }
 
         .badge {
@@ -558,15 +574,19 @@
 <div class="container">
 
     <header class="header">
+        <div class="user-section">
+    <span>Hi, <strong id="username"></strong></span>
+    <button class="logout-button" onclick="logout()">Logout</button>
+</div>
 
         <span class="badge">
-            CODE ANALYSIS TOOL
+            CODE REVIEWING TOOL
         </span>
 
         <h1>VeriCode</h1>
 
         <p class="description">
-            Analyze your codebase, identify areas that need improvement,
+            Review your codebase, identify areas that need improvement,
             detect potential issues, and evaluate whether your code is
             ready for production.
         </p>
@@ -591,7 +611,7 @@
                 id="analyze-button"
                 onclick="analyzeCode()"
             >
-                Analyze Code
+                Review Code
             </button>
 
         </div>
@@ -676,20 +696,37 @@
     </section>
 
     <footer>
-        VeriCode &mdash; Code Analysis and Production Readiness
+        VeriCode &mdash; Code Reviewing and Production Readiness
     </footer>
 
 </div>
 <script src="{% static 'frontend/js/auth.js' %}"></script>
+
 <script>
     if (!getAccessToken()) {
         window.location.href = "/login/";
     }
 </script>
+
+
 <script>
     let currentAnalysis = null;
     let currentSourceCode = "";
     let conversationHistory = [];
+    let currentAnalysisId = null;
+    async function loadUsername() {
+    const response = await authenticatedFetch("/api/auth/me/");
+
+    if (!response.ok) {
+        return;
+    }
+
+    const data = await response.json();
+
+    document.getElementById("username").textContent = data.username;
+}
+
+loadUsername();
 async function analyzeCode() {
 
     const url = document
@@ -739,7 +776,7 @@ async function analyzeCode() {
     progressList.innerHTML = "";
 
     button.disabled = true;
-
+    currentAnalysisId = null;
     currentAnalysis = null;
     currentSourceCode = "";
     conversationHistory = [];
@@ -748,7 +785,7 @@ async function analyzeCode() {
 
     try {
 
-        const response = await fetch(
+        const response = await authenticatedFetch(
             "/api/analyze/",
             {
                 method: "POST",
@@ -797,6 +834,7 @@ async function analyzeCode() {
 
             if (data.type === "file") {
 
+                currentAnalysisId = data.analysis_id;
                 currentAnalysis =
                     data.result;
 
@@ -931,6 +969,9 @@ async function analyzeCode() {
 
         const data =
             event.repository;
+        
+        currentAnalysisId =
+        data.analysis_id;
 
         currentAnalysis =
             data.result || data;
@@ -1670,7 +1711,7 @@ function displayRepositoryAnalysis(
 
         try {
 
-            const response = await fetch(
+            const response = await authenticatedFetch(
                 "/api/chat/",
                 {
                     method: "POST",
@@ -1680,12 +1721,13 @@ function displayRepositoryAnalysis(
                     },
 
                     body: JSON.stringify({
-                        question: question,
-                        analysis: currentAnalysis,
-                        source_code: currentSourceCode,
-                        conversation_history:
-                            conversationHistory
-                    })
+    analysis_id: currentAnalysisId,
+    question: question,
+    analysis: currentAnalysis,
+    source_code: currentSourceCode,
+    conversation_history:
+        conversationHistory
+})
                 }
             );
 

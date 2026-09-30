@@ -14,7 +14,11 @@ from .models import Analysis
 
 def get_authenticated_user(request):
     authentication = JWTAuthentication()
-    result = authentication.authenticate(request)
+
+    try:
+        result = authentication.authenticate(request)
+    except Exception:
+        return None
 
     if result is None:
         return None
@@ -28,9 +32,7 @@ def analyze_github(request):
 
     if request.method != "POST":
         return JsonResponse(
-            {
-                "error": "Only POST requests are allowed"
-            },
+            {"error": "Only POST requests are allowed"},
             status=405
         )
 
@@ -38,27 +40,22 @@ def analyze_github(request):
 
     if user is None:
         return JsonResponse(
-            {
-                "error": "Authentication required"
-            },
+            {"error": "Authentication required"},
             status=401
         )
 
     try:
-
         data = json.loads(request.body)
 
         url = data.get("url")
 
         if not url:
             return JsonResponse(
-                {
-                    "error": "GitHub URL is required"
-                },
+                {"error": "GitHub URL is required"},
                 status=400
             )
 
-        # GitHub file
+        # GitHub file analysis
         if "/blob/" in url:
 
             result = analyze_github_file(url)
@@ -71,22 +68,20 @@ def analyze_github(request):
             )
 
             return JsonResponse({
+                "type": "file",
                 "analysis_id": analysis.id,
-                "result": result
+                "result": result,
+                "source_code": ""
             })
 
-        # GitHub repository
+        # Repository analysis
         else:
 
             def stream_with_save():
 
                 for line in analyze_repository_stream(url):
 
-                    # Send the original stream to frontend
-                    yield line
-
                     try:
-
                         event = json.loads(line)
 
                         if event.get("type") == "complete":
@@ -96,15 +91,24 @@ def analyze_github(request):
                                 {}
                             )
 
-                            Analysis.objects.create(
+                            analysis = Analysis.objects.create(
                                 user=user,
                                 github_url=url,
                                 analysis_result=repository,
                                 source_code=""
                             )
 
+                            repository["analysis_id"] = analysis.id
+
+                            event["repository"] = repository
+
+                            line = json.dumps(event) + "\n"
+
                     except Exception:
-                        pass
+                        import traceback
+                        traceback.print_exc()
+
+                    yield line
 
             response = StreamingHttpResponse(
                 stream_with_save(),
@@ -119,12 +123,10 @@ def analyze_github(request):
     except Exception as error:
 
         return JsonResponse(
-            {
-                "error": str(error)
-            },
+            {"error": str(error)},
             status=400
         )
-
+    
 @csrf_exempt
 def list_analyses(request):
 

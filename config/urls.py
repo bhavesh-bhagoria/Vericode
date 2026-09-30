@@ -16,11 +16,22 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from frontend.views import home,login_page
+from frontend.views import home, login_page, register_page, verify_email_page
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+
     path("api/", include("detector.urls")),
+
     path("login/", login_page, name="login"),
+
+    path("register/", register_page, name="register"),
+
+    path(
+        "verify-email/<str:token>/",
+        verify_email_page,
+        name="verify_email_page"
+    ),
+
     path("", home),
 ]

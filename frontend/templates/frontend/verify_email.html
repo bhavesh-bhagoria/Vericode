@@ -1,0 +1,61 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Verify Email - VeriCode</title>
+</head>
+
+<body>
+
+    <h1>Verifying your email...</h1>
+
+    <p id="message"></p>
+
+    <script>
+
+        const token = "{{ token }}";
+
+        async function verifyEmail() {
+
+            try {
+
+                const response = await fetch(
+                    `/api/auth/verify-email/${token}/`
+                );
+
+                const data = await response.json();
+
+                const message =
+                    document.getElementById("message");
+
+                if (response.ok) {
+
+                    message.textContent =
+                        "Email verified successfully. You can now login.";
+
+                } else {
+
+                    message.textContent =
+                        data.error || "Email verification failed.";
+
+                }
+
+            } catch (error) {
+
+                document.getElementById("message").textContent =
+                    "Something went wrong. Please try again.";
+
+            }
+
+        }
+
+        verifyEmail();
+
+    </script>
+
+</body>
+</html>

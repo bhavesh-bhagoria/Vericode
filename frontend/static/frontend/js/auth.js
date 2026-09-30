@@ -1,31 +1,29 @@
+console.log("AUTH.JS LOADED");
 async function login(username, password) {
+    const response = await fetch("/api/auth/login/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            username: username,
+            password: password
+        })
+    });
 
- 
-const response = await fetch("/api/auth/login/", {
-    method: "POST",
+    const data = await response.json();
 
-    headers: {
-        "Content-Type": "application/json"
-    },
+    if (!response.ok) {
+        throw new Error(data.error || "Login failed");
+    }
 
-    body: JSON.stringify({
-        username: username,
-        password: password
-    })
-});
+    localStorage.setItem("access_token", data.access);
+    localStorage.setItem("refresh_token", data.refresh);
 
-const data = await response.json();
+    localStorage.setItem("username", data.username);
+    console.log("SAVED USERNAME:", localStorage.getItem("username"));
 
-if (!response.ok) {
-    throw new Error(data.error || "Login failed");
-}
-
-localStorage.setItem("access_token", data.access);
-localStorage.setItem("refresh_token", data.refresh);
-
-return data;
- 
-
+    return data;
 }
 
 async function refreshAccessToken() {
@@ -126,12 +124,34 @@ return localStorage.getItem("refresh_token");
 }
 
 function logout() {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("username");
 
- 
-localStorage.removeItem("access_token");
-localStorage.removeItem("refresh_token");
+    window.location.href = "/login/";
+}
+async function register(username, email, password, confirmPassword) {
 
-window.location.href = "/login/";
- 
+    const response = await fetch("/api/auth/register/", {
+        method: "POST",
 
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            username: username,
+            email: email,
+            password: password,
+            confirm_password: confirmPassword
+        })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || "Registration failed");
+    }
+
+    return data;
 }
